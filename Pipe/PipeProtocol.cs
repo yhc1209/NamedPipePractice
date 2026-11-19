@@ -6,8 +6,7 @@ namespace NamedPipePractice.Pipe;
 public class QueryPackage
 {
     public required int Action { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public required object Data { get; set; }
+    public required object? Data { get; set; }
 }
 
 /// <summary>回覆封包。</summary>
@@ -16,8 +15,7 @@ public class ReplyPackage
     public required int Action { get; set; }
     public required int Code { get; set; }
     public required string Message { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public required object Data { get; set; }
+    public required object? Data { get; set; }
 }
 
 /// <summary>處理請求、傳出回覆的處理器。</summary>

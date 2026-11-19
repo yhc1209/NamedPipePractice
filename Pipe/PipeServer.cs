@@ -14,15 +14,20 @@ public class PipeServer
     public const int MAX_NUMBER_OF_CONNECTION = 5;
 
     private string PipeName { get; init; }
-    private readonly PackageHandler packageHandler;
+    private PackageHandler? packageHandler = null;
     private Task? task = null;
     private readonly List<Task> connections;
 
-    public PipeServer(string name, PackageHandler handler)
+    public PipeServer(string name, PackageHandler? handler = null)
     {
         PipeName = name;
         packageHandler = handler;
         connections = new List<Task>();
+    }
+
+    public void SetHandler(PackageHandler handler)
+    {
+        packageHandler = handler;
     }
 
     public void StartListen(CancellationToken token)
@@ -82,7 +87,8 @@ public class PipeServer
                     throw new PipeServerException(PipeServerExcpCode.NoQueryPackage);
             }
 
-            ReplyPackage reply = packageHandler.Invoke(query);
+            ReplyPackage reply = packageHandler?.Invoke(query) ??
+                throw new PipeServerException(PipeServerExcpCode.NoQueryHandler);
             using (var writer = new StreamWriter(pipe, Encoding.UTF8, leaveOpen: true))
             {
                 string response = JsonSerializer.Serialize(reply);

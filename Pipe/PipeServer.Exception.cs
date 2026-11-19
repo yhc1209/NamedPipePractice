@@ -16,4 +16,5 @@ public enum PipeServerExcpCode
 {
     NoQueryData,
     NoQueryPackage,
+    NoQueryHandler,
 }
