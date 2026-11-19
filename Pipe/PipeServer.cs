@@ -61,6 +61,7 @@ public class PipeServer
                 excp.Code
             );
         }
+        catch (OperationCanceledException) { }
         catch (Exception excp)
         {
             Console.Error.WriteLine(
