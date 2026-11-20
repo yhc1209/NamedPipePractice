@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Security.Principal;
+using System.Security.AccessControl;
 
 namespace NamedPipePractice.Pipe;
 
@@ -62,6 +64,14 @@ public class PipeServer
             );
         }
         catch (OperationCanceledException) { }
+        catch (UnauthorizedAccessException excp)
+        {
+            Console.Error.WriteLine(
+                "Failed to handle the pipe! ({0} - {1})",
+                excp.GetType(), excp.Message
+            );
+            Console.Error.WriteLine(excp.StackTrace);
+        }
         catch (Exception excp)
         {
             Console.Error.WriteLine(
@@ -100,12 +110,35 @@ public class PipeServer
 
     private NamedPipeServerStream CreatePipeServer()
     {
-        return new NamedPipeServerStream(
-            PipeName,
-            PipeDirection.InOut,
-            MAX_NUMBER_OF_CONNECTION,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous | PipeOptions.WriteThrough
-        );
+        PipeOptions pipeOpts = PipeOptions.Asynchronous | PipeOptions.WriteThrough;
+        if (connections.Count == 0)
+            pipeOpts |= PipeOptions.FirstPipeInstance;
+
+        if (OperatingSystem.IsWindows())
+        {
+            var ps = new PipeSecurity();
+            ps.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.Read | PipeAccessRights.Write, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Network", PipeAccessRights.FullControl, AccessControlType.Deny));
+
+            return NamedPipeServerStreamAcl.Create(
+                PipeName,
+                PipeDirection.InOut,
+                MAX_NUMBER_OF_CONNECTION,
+                PipeTransmissionMode.Byte,
+                pipeOpts,
+                0, 0, ps
+            );
+        }
+        else
+        {
+            return new NamedPipeServerStream(
+                PipeName,
+                PipeDirection.InOut,
+                MAX_NUMBER_OF_CONNECTION,
+                PipeTransmissionMode.Byte,
+                pipeOpts
+            );
+        }
     }
 }
