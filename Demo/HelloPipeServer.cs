@@ -21,6 +21,8 @@ public class HelloPipeServer : PipeServer
             case HelloAction.EchoHello:
                 return GetHelloReply(action, query.GetHelloInfo());
             case HelloAction.SecureHello:
+                query.ValidateAuthorization();
+                return CreateOkReply(action, "Hello, my secure friend.");
             default:
                 return CreateFailureReply(action, "...");
         }
