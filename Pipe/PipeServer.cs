@@ -10,6 +10,7 @@ using System.Security.Principal;
 using System.Security.AccessControl;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace NamedPipePractice.Pipe;
 
@@ -117,21 +118,22 @@ public partial class PipeServer
         if (connections.Count == 0)
             pipeOpts |= PipeOptions.FirstPipeInstance;
 
-#if WINDOWS
-        var ps = new PipeSecurity();
-        ps.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
-        ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.Read | PipeAccessRights.Write, AccessControlType.Allow));
-        ps.AddAccessRule(new PipeAccessRule("Network", PipeAccessRights.FullControl, AccessControlType.Deny));
+        if (OperatingSystem.IsWindows())
+        {
+            var ps = new PipeSecurity();
+            ps.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.Read | PipeAccessRights.Write, AccessControlType.Allow));
+            ps.AddAccessRule(new PipeAccessRule("Network", PipeAccessRights.FullControl, AccessControlType.Deny));
 
-        return NamedPipeServerStreamAcl.Create(
-            PipeName,
-            PipeDirection.InOut,
-            MAX_NUMBER_OF_CONNECTION,
-            PipeTransmissionMode.Byte,
-            pipeOpts,
-            0, 0, ps
-        );
-#endif
+            return NamedPipeServerStreamAcl.Create(
+                PipeName,
+                PipeDirection.InOut,
+                MAX_NUMBER_OF_CONNECTION,
+                PipeTransmissionMode.Byte,
+                pipeOpts,
+                0, 0, ps
+            );
+        }
 
         return new NamedPipeServerStream(
             PipeName,
@@ -144,23 +146,24 @@ public partial class PipeServer
 
     private static int GetPipeClientPid(SafePipeHandle pipeHandle)
     {
-#if WINDOWS
-        if (GetNamedPipeClientProcessId(pipeHandle, out uint clientPid))
-            return (int)clientPid;
+        if (OperatingSystem.IsWindows())
+        {
+            if (GetNamedPipeClientProcessId(pipeHandle, out uint clientPid))
+                return (int)clientPid;
 
-        int errorCode = Marshal.GetLastWin32Error();
-        Console.Error.WriteLine($"無法取得pipe client PID。 last error code: 0x{errorCode:X}");
-        return -1;
-#endif
+            int errorCode = Marshal.GetLastWin32Error();
+            Console.Error.WriteLine($"無法取得pipe client PID。 last error code: 0x{errorCode:X}");
+            return -1;
+        }
 
         // TODO: support other platform
+
         return -1;
     }
 
-#if WINDOWS
+    [SupportedOSPlatform("windows")]
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private extern static bool GetNamedPipeClientProcessId(SafePipeHandle Pipe, out uint ClientProcessId);
-#endif
 
 }
