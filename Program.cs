@@ -99,7 +99,6 @@ class Program
         Console.WriteLine("  - 直接輸入文字並按 Enter 即發送訊息");
         Console.WriteLine("  - 輸入 /mode <1-4> 切換動作 (1: Hello, 2: DoubleHello, 3: Echo, 4: Secure)");
         Console.WriteLine("  - 輸入 /sender <名稱> 變更發送者名稱");
-        Console.WriteLine("  - 輸入 /token <值> 設定驗證 Token (例如: /token P@ssw0rd)");
         Console.WriteLine("  - 按下 Ctrl+C 可隨時結束程式");
         Console.WriteLine("==========================================================");
 
@@ -109,8 +108,7 @@ class Program
         while (!token.IsCancellationRequested)
         {
             Console.WriteLine();
-            string tokenPrompt = string.IsNullOrEmpty(client.AuthToken) ? "無" : client.AuthToken;
-            Console.Write($"[{senderName} | 模式: {currentAction} | Token: {tokenPrompt}] 請輸入訊息: ");
+            Console.Write($"[{senderName} | 模式: {currentAction}] 請輸入訊息: ");
 
             string? input;
             try
@@ -161,31 +159,6 @@ class Program
                 else
                 {
                     Console.WriteLine("[系統] 請提供發送者名稱，例如: /sender Alice");
-                }
-                continue;
-            }
-
-            // 指令處理: 設定 Token
-            if (input.StartsWith("/token", StringComparison.OrdinalIgnoreCase))
-            {
-                var parts = input.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
-                {
-                    string newToken = parts[1].Trim();
-                    if (newToken.Equals("clear", StringComparison.OrdinalIgnoreCase) || newToken.Equals("none", StringComparison.OrdinalIgnoreCase))
-                    {
-                        client.AuthToken = null;
-                        Console.WriteLine("[系統] 已清除 Token。");
-                    }
-                    else
-                    {
-                        client.AuthToken = newToken;
-                        Console.WriteLine($"[系統] Token 已設定為: {client.AuthToken}");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"[系統] 目前 Token: {client.AuthToken ?? "(無)"}。可輸入 '/token <字串>' 設定或 '/token clear' 清除。");
                 }
                 continue;
             }

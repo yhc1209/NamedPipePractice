@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
+using System.Diagnostics.CodeAnalysis;
 
 namespace NamedPipePractice.Demo;
 
@@ -26,7 +27,13 @@ public class HelloToken
     [JsonPropertyName("tid")]
     public required int Nonce { get; init; }
 
-    public HelloToken(string iss, string aud, int pid)
+    [JsonIgnore]
+    private string? tokenString = null;
+
+    public HelloToken() { }
+
+    [SetsRequiredMembers]
+    public HelloToken(string iss, string aud, int pid, int timeout_sec = TOKEN_EXPIRATION_SEC)
     {
         Issuer = iss;
         Audience = aud;
@@ -35,15 +42,27 @@ public class HelloToken
         ExpirationTime = IssuedAt.AddSeconds(TOKEN_EXPIRATION_SEC);
         Nonce = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
     }
+    
+    public string GetTokenString(byte[] key)
+    {
+        if (string.IsNullOrEmpty(tokenString))
+            tokenString = ComputeToken(key);
+        return tokenString;
+    }
 
     public void CheckExpiration()
     {
-        DateTime now = DateTime.UtcNow;
-        if (now > ExpirationTime || now < IssuedAt)
+        if (TryCheckException())
             throw new HelloTokenException("The token is invalid.");
     }
 
-    public string ComputeToken(byte[] key)
+    public bool TryCheckException()
+    {
+        DateTime now = DateTime.UtcNow;
+        return IssuedAt <= now && now < ExpirationTime;
+    }
+
+    private string ComputeToken(byte[] key)
     {
         if (key is null)
             throw new ArgumentNullException("Invalid key to compute token.");

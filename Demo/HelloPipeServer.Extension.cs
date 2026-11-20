@@ -12,4 +12,12 @@ public static class PackageExtension
         string json = JsonSerializer.Serialize(self.Data);
         return JsonSerializer.Deserialize<T>(json);
     }
+
+    public static T? GetData<T>(this ReplyPackage self)
+    {
+        if (self.Data is null)
+            return default(T);
+        string json = JsonSerializer.Serialize(self.Data);
+        return JsonSerializer.Deserialize<T>(json);
+    }
 }

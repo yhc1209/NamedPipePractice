@@ -1,3 +1,5 @@
+using System;
+
 namespace NamedPipePractice.Demo;
 
 /// <summary>驗證器。</summary>
@@ -19,8 +21,14 @@ public class Authenticator
 
 public class RegisterQueryInfo
 {
-    public required int ProcessId { get; init; }
-    public required string MainModulePath { get; init; }
+    public int ProcessId { get; init; }
+    public string MainModulePath { get; init; }
+
+    public RegisterQueryInfo()
+    {
+        ProcessId = Environment.ProcessId;
+        MainModulePath = Environment.ProcessPath ?? "";
+    }
 }
 
 public class RegisterReplyInfo
