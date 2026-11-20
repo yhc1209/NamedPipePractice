@@ -19,7 +19,8 @@ public class HelloPipeServer : PipeServer
     private ReplyPackage HandleQuery(int pid, QueryPackage query)
     {
         HelloAction action = (HelloAction)query.Action;
-        Console.WriteLine($"[Server] 收到請求: Action={action}, Token={query.Token ?? "(none)"}");
+        string tokenPrompt = query.Token is null ? "(none)" : "******";
+        Console.WriteLine($"[Server] 收到請求: Action={action}, Token={tokenPrompt}");
 
         ReplyPackage reply;
         switch (action)
@@ -84,6 +85,12 @@ public class HelloPipeServer : PipeServer
         try
         {
             HelloToken token = HelloToken.ParseToken(TokenHashKey, tokenString);
+            Console.WriteLine("[Server][ValidateToken]");
+            Console.WriteLine("{0,15}: {1}", nameof(token.Issuer), token.Issuer);
+            Console.WriteLine("{0,15}: {1}", nameof(token.Audience), token.Audience);
+            Console.WriteLine("{0,15}: {1}", nameof(token.AudiencePid), token.AudiencePid);
+            Console.WriteLine("{0,15}: {1}", nameof(token.Nonce), token.Nonce);
+
             token.CheckExpiration();
             if (token.AudiencePid != pid)
                 throw new InvalidOperationException($"Unexcepted token owner! (pid: {pid})");

@@ -52,7 +52,7 @@ public class HelloToken
 
     public void CheckExpiration()
     {
-        if (TryCheckException())
+        if (!TryCheckException())
             throw new HelloTokenException("The token is invalid.");
     }
 
