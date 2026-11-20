@@ -1,3 +1,4 @@
+using System;
 using NamedPipePractice.Pipe;
 
 namespace NamedPipePractice.Demo;
@@ -14,18 +15,29 @@ public class HelloPipeServer : PipeServer
     private ReplyPackage HandleQuery(QueryPackage query)
     {
         HelloAction action = (HelloAction)query.Action;
+        Console.WriteLine($"[Server] 收到請求: Action={action}, Token={query.Token ?? "(none)"}");
+
+        ReplyPackage reply;
         switch (action)
         {
             case HelloAction.Hello:
             case HelloAction.DoubleHello:
             case HelloAction.EchoHello:
-                return GetHelloReply(action, query.GetHelloInfo());
+                reply = GetHelloReply(action, query.GetHelloInfo());
+                break;
             case HelloAction.SecureHello:
-                query.ValidateAuthorization();
-                return CreateOkReply(action, "Hello, my secure friend.");
+                if (query.ValidateAuthorization())
+                    reply = CreateOkReply(action, "Hello, my secure friend.");
+                else
+                    reply = CreateFailureReply(action, "permission deny!");
+                break;
             default:
-                return CreateFailureReply(action, "...");
+                reply = CreateFailureReply(action, "...");
+                break;
         }
+
+        Console.WriteLine($"[Server] 回覆結果: Code={(HelloReplyCode)reply.Code}, Message={reply.Message}");
+        return reply;
     }
 
     private ReplyPackage GetHelloReply(HelloAction action, HelloInfo? info)

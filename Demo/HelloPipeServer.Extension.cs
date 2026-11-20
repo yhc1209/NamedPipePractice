@@ -13,11 +13,12 @@ public static class PackageExtension
         return JsonSerializer.Deserialize<HelloInfo>(json);
     }
 
-    public static void ValidateAuthorization(this QueryPackage self)
+    public static bool ValidateAuthorization(this QueryPackage self)
     {
         if (string.IsNullOrWhiteSpace(self.Token))
-            throw new PipeServerException(PipeServerExcpCode.BadAuth);
-        
+            return false;
+
         // TODO: validate token
+        return true;
     }
 }
