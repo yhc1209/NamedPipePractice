@@ -6,6 +6,9 @@ public enum HelloAction : int
     DoubleHello,
     EchoHello,
     SecureHello,
+
+    // authentication
+    Register    = 10000
 }
 
 public enum HelloReplyCode : int

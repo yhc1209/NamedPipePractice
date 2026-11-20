@@ -8,10 +8,12 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Security.Principal;
 using System.Security.AccessControl;
+using Microsoft.Win32.SafeHandles;
+using System.Runtime.InteropServices;
 
 namespace NamedPipePractice.Pipe;
 
-public class PipeServer
+public partial class PipeServer
 {
     public const int MAX_NUMBER_OF_CONNECTION = 5;
 
@@ -87,6 +89,7 @@ public class PipeServer
         using (NamedPipeServerStream pipe = CreatePipeServer())
         {
             await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
+            int clientPid = GetPipeClientPid(pipe.SafePipeHandle);
 
             QueryPackage query;
             using (var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true))
@@ -98,7 +101,7 @@ public class PipeServer
                     throw new PipeServerException(PipeServerExcpCode.NoQueryPackage);
             }
 
-            ReplyPackage reply = packageHandler?.Invoke(query) ??
+            ReplyPackage reply = packageHandler?.Invoke(clientPid, query) ??
                 throw new PipeServerException(PipeServerExcpCode.NoQueryHandler);
             using (var writer = new StreamWriter(pipe, Encoding.UTF8, leaveOpen: true))
             {
@@ -114,31 +117,50 @@ public class PipeServer
         if (connections.Count == 0)
             pipeOpts |= PipeOptions.FirstPipeInstance;
 
-        if (OperatingSystem.IsWindows())
-        {
-            var ps = new PipeSecurity();
-            ps.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
-            ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.Read | PipeAccessRights.Write, AccessControlType.Allow));
-            ps.AddAccessRule(new PipeAccessRule("Network", PipeAccessRights.FullControl, AccessControlType.Deny));
+#if WINDOWS
+        var ps = new PipeSecurity();
+        ps.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
+        ps.AddAccessRule(new PipeAccessRule("Users", PipeAccessRights.Read | PipeAccessRights.Write, AccessControlType.Allow));
+        ps.AddAccessRule(new PipeAccessRule("Network", PipeAccessRights.FullControl, AccessControlType.Deny));
 
-            return NamedPipeServerStreamAcl.Create(
-                PipeName,
-                PipeDirection.InOut,
-                MAX_NUMBER_OF_CONNECTION,
-                PipeTransmissionMode.Byte,
-                pipeOpts,
-                0, 0, ps
-            );
-        }
-        else
-        {
-            return new NamedPipeServerStream(
-                PipeName,
-                PipeDirection.InOut,
-                MAX_NUMBER_OF_CONNECTION,
-                PipeTransmissionMode.Byte,
-                pipeOpts
-            );
-        }
+        return NamedPipeServerStreamAcl.Create(
+            PipeName,
+            PipeDirection.InOut,
+            MAX_NUMBER_OF_CONNECTION,
+            PipeTransmissionMode.Byte,
+            pipeOpts,
+            0, 0, ps
+        );
+#endif
+
+        return new NamedPipeServerStream(
+            PipeName,
+            PipeDirection.InOut,
+            MAX_NUMBER_OF_CONNECTION,
+            PipeTransmissionMode.Byte,
+            pipeOpts
+        );
     }
+
+    private static int GetPipeClientPid(SafePipeHandle pipeHandle)
+    {
+#if WINDOWS
+        if (GetNamedPipeClientProcessId(pipeHandle, out uint clientPid))
+            return (int)clientPid;
+
+        int errorCode = Marshal.GetLastWin32Error();
+        Console.Error.WriteLine($"無法取得pipe client PID。 last error code: 0x{errorCode:X}");
+        return -1;
+#endif
+
+        // TODO: support other platform
+        return -1;
+    }
+
+#if WINDOWS
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private extern static bool GetNamedPipeClientProcessId(SafePipeHandle Pipe, out uint ClientProcessId);
+#endif
+
 }

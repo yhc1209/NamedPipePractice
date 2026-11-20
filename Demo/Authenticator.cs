@@ -14,4 +14,16 @@ public class Authenticator
     {
         return PASSWORD.Equals(input);
     }
+
+}
+
+public class RegisterQueryInfo
+{
+    public required int ProcessId { get; init; }
+    public required string MainModulePath { get; init; }
+}
+
+public class RegisterReplyInfo
+{
+    public required string Key { get; init; }
 }

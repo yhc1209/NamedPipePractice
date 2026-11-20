@@ -18,6 +18,7 @@ public class ReplyPackage
 }
 
 /// <summary>處理請求、傳出回覆的處理器。</summary>
-/// <param name="query"></param>
+/// <param name="pid">發送請求的process之process ID。</param>
+/// <param name="query">收到的請求。</param>
 /// <returns></returns>
-public delegate ReplyPackage PackageHandler(QueryPackage query);
+public delegate ReplyPackage PackageHandler(int pid, QueryPackage query);
