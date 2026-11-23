@@ -39,7 +39,7 @@ public class HelloToken
         Audience = aud;
         AudiencePid = pid;
         IssuedAt = DateTime.UtcNow;
-        ExpirationTime = IssuedAt.AddSeconds(TOKEN_EXPIRATION_SEC);
+        ExpirationTime = IssuedAt.AddSeconds(timeout_sec);
         Nonce = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue);
     }
     
